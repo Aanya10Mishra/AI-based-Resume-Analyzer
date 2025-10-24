@@ -1,0 +1,29 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtualenv
+.venv/
+env/
+venv/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Data and outputs
+output/
+Dataset/
+*.sqlite3
+
+# Temp files
+*.log
+*.tmp
+*.bak
+
+# Flask session cookie secret file, envs
+.env
