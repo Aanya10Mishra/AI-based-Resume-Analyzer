@@ -132,7 +132,3 @@ Consider MIT or Apache-2.0 for permissive open-source licensing.
 - Provide optional config (YAML/JSON) to load skill/role lists instead of editing code.
 
 ---
-
-ou want to optionally enable embeddings.
-
-Tell me which of the above you'd like me to create next and I will produce it (a requirements.txt, CONTRIBUTING.md, or code changes).
