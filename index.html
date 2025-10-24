@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Resume Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container py-4">
+      <div class="card p-4 shadow-sm">
+        <h2>AI Based Resume Analyzer</h2>
+        <p class="text-muted">Upload CSV / PDF / DOCX or use default dataset. Provide a custom JD or select a saved JD.</p>
+
+        <form id="analyze-form" enctype="multipart/form-data">
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="use_default_dataset" name="use_default_dataset">
+              <label class="form-check-label" for="use_default_dataset">Use default dataset (Dataset/Resume.csv)</label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="resume_csv" class="form-label">Upload resume CSV / PDF / DOCX</label>
+            <input class="form-control" type="file" id="resume_csv" name="resume_csv" accept=".csv,.pdf,.docx">
+            <div class="form-text">CSV must contain Resume_str or resume_text. PDFs/DOCX will be text-extracted.</div>
+          </div>
+
+          <hr />
+          <h5>Job Description (choose or provide custom)</h5>
+
+          <div class="mb-3">
+            <label for="jd_select" class="form-label">Select saved/default JD</label>
+            <select id="jd_select" name="jd_select" class="form-select">
+              <option value="ALL">Score against all default JDs</option>
+              {% for jd in jds %}
+                <option value="{{ jd.jd_id }}">{{ jd.title }} ({{ jd.jd_id }})</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Select a saved or default JD, or paste a custom JD below.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="jd_text" class="form-label">Or paste a custom job description</label>
+            <textarea id="jd_text" name="jd_text" rows="5" class="form-control" placeholder="Paste job description text here (optional)"></textarea>
+            <div class="form-text">If JD text is pasted here, it will be used for scoring.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="jd_csv" class="form-label">Or upload JD CSV (columns: jd_id,title,skills,roles)</label>
+            <input class="form-control" type="file" id="jd_csv" name="jd_csv" accept=".csv">
+          </div>
+
+          <button id="analyze-btn" type="submit" class="btn btn-primary">Analyze</button>
+          <div id="loading" class="spinner-border text-primary ms-2" role="status" style="display:none;"><span class="visually-hidden">Loading...</span></div>
+        </form>
+
+        <hr />
+        <div id="preview-area"></div>
+        <div id="results-area"></div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('analyze-form');
+      const loading = document.getElementById('loading');
+      const resultsArea = document.getElementById('results-area');
+      const previewArea = document.getElementById('preview-area');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        resultsArea.innerHTML = '';
+        previewArea.innerHTML = '';
+        loading.style.display = 'inline-block';
+
+        const formData = new FormData(form);
+        try {
+          const resp = await fetch('/analyze', { method: 'POST', body: formData });
+          const data = await resp.json();
+          loading.style.display = 'none';
+          if (!resp.ok) {
+            resultsArea.innerHTML = `<div class="alert alert-danger">${data.error || 'Error occurred'}</div>`;
+            return;
+          }
+
+          if (data.extracted_snippet) {
+            previewArea.innerHTML = `<div class="alert alert-info"><strong>Extracted snippet:</strong><pre style="white-space:pre-wrap">${data.extracted_snippet}</pre></div>`;
+          }
+
+          data.results.forEach(group => {
+            const card = document.createElement('div');
+            card.className = 'card mt-3 p-3';
+            card.innerHTML = `<h5>${group.jd_title} (${group.jd_id})</h5>
+                              <p class="text-muted">Top ${group.top_matches.length} matches</p>
+                              <div class="table-responsive">
+                                <table class="table table-sm">
+                                  <thead><tr><th>Resume ID</th><th>Score</th><th>Skills Matched</th><th>Roles Matched</th></tr></thead>
+                                  <tbody>
+                                  ${group.top_matches.map(r => `<tr><td>${r.resume_id}</td><td>${r.score}</td><td>${r.skills_matched}</td><td>${r.roles_matched}</td></tr>`).join('')}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <a class="btn btn-outline-secondary btn-sm" href="${data.download_url}">Download full CSV</a>
+                              `;
+            resultsArea.appendChild(card);
+          });
+
+        } catch (err) {
+          loading.style.display = 'none';
+          resultsArea.innerHTML = `<div class="alert alert-danger">Unexpected error: ${err.message}</div>`;
+        }
+      });
+    </script>
+  </body>
+</html>
